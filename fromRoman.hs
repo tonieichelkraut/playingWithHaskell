@@ -1,5 +1,7 @@
 import Control.Monad
 import Data.List.Safe as SafeList
+import Data.List
+import Data.Maybe
 
 data Digit = I | V | X | L | C | D | M deriving(Eq,Ord,Show)
 
@@ -18,20 +20,49 @@ parseString :: String -> Maybe [Digit]
 parseString = mapM parseChar
 
 zeroThroughNine :: Digit -> Digit -> Digit -> [[Digit]]
-zeroThroughNine o f t = [[],[o],[o,o],[o,o,o],[o,f],[f],[f,o],[f,o,o],[f,o,o,o],[o,t]]
+--zeroThroughNine o f t = [[],[o],[o,o],[o,o,o],[o,f],[f],[f,o],[f,o,o],[f,o,o,o],[o,t]]
+zeroThroughNine o f t = [[o,t],[o,f],[f,o,o,o],[f,o,o],[f,o],[f],[o,o,o],[o,o],[o],[]]
+
+thousands :: [[Digit]]
+thousands = [[M,M,M],[M,M],[M],[]]
 
 validate :: [Digit] -> [[Digit]]
 validate ds = do
   one <- zeroThroughNine I V X
   ten <- zeroThroughNine X L C
   hundred <- zeroThroughNine C D M
-  thousand <- [[],[M],[M,M],[M,M,M]]
+  thousand <- thousands
   let r = thousand ++ hundred ++ ten ++ one
   guard (r == ds)
   return r
 
+eitherStrip :: [Digit] -> [Digit] -> Either [Digit] [Digit]
+eitherStrip ds p = case stripPrefix p ds of
+                      Just s -> Left s
+                      Nothing -> Right ds
+
+eitherStripFromList :: [[Digit]] -> [Digit] -> Either [Digit] [Digit]
+eitherStripFromList ps ds = case foldM eitherStrip ds ps of
+                              Left s -> Right s
+                              Right s -> Left s
+
+validate' :: [Digit] -> Maybe [Digit]
+validate' ds = let ones = zeroThroughNine I V X
+                   tens = zeroThroughNine X L C
+                   hundreds = zeroThroughNine C D M
+                   r = eitherStripFromList thousands ds >>=
+                       eitherStripFromList hundreds >>=
+                       eitherStripFromList tens >>=
+                       eitherStripFromList ones
+               in case r of
+                 Right [] -> Just ds
+                 _ -> Nothing
+
 stringToRoman :: String -> Maybe [Digit]
 stringToRoman s = parseString s >>= SafeList.head . validate
+
+stringToRoman' :: String -> Maybe [Digit]
+stringToRoman' s = parseString s >>= validate'
 
 romanToInt :: [Digit] -> Int
 romanToInt r = let (n,_) = foldr combinator (0,I) r
@@ -56,6 +87,11 @@ main = do
     putStrLn "Enter roman number:"
     string <- getLine
     let validatedRoman = stringToRoman string
+        validatedRoman' = stringToRoman' string
         number = romanToInt <$> validatedRoman
+    putStrLn "First validation result:"
     print validatedRoman
+    putStrLn "Second validation result:"
+    print validatedRoman'
+    putStrLn "This roman number equals:"
     print number
