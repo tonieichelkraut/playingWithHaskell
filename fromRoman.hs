@@ -41,22 +41,21 @@ eitherStrip ds p = case stripPrefix p ds of
                       Just s -> Left s
                       Nothing -> Right ds
 
-eitherStripFromList :: [[Digit]] -> [Digit] -> Either [Digit] [Digit]
+eitherStripFromList :: [[Digit]] -> [Digit] -> Maybe [Digit]
 eitherStripFromList ps ds = case foldM eitherStrip ds ps of
-                              Left s -> Right s
-                              Right s -> Left s
+                              Left s -> Just s
+                              _ -> Nothing
 
 validate' :: [Digit] -> Maybe [Digit]
 validate' ds = let ones = zeroThroughNine I V X
                    tens = zeroThroughNine X L C
                    hundreds = zeroThroughNine C D M
-                   r = eitherStripFromList thousands ds >>=
-                       eitherStripFromList hundreds >>=
-                       eitherStripFromList tens >>=
-                       eitherStripFromList ones
-               in case r of
-                 Right [] -> Just ds
-                 _ -> Nothing
+                in eitherStripFromList thousands ds >>=
+                   eitherStripFromList hundreds >>=
+                   eitherStripFromList tens >>=
+                   eitherStripFromList ones >>=
+                   guard.null >>=
+                   const (return ds)
 
 stringToRoman :: String -> Maybe [Digit]
 stringToRoman s = parseString s >>= SafeList.head . validate
