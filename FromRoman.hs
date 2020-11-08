@@ -1,7 +1,7 @@
+module FromRoman where
+
 import Control.Monad
 import Data.List.Safe as SafeList
-import Data.List
-import Data.Maybe
 
 data Digit = I | V | X | L | C | D | M deriving(Eq,Ord,Show)
 
@@ -20,7 +20,6 @@ parseString :: String -> Maybe [Digit]
 parseString = mapM parseChar
 
 zeroThroughNine :: Digit -> Digit -> Digit -> [[Digit]]
---zeroThroughNine o f t = [[],[o],[o,o],[o,o,o],[o,f],[f],[f,o],[f,o,o],[f,o,o,o],[o,t]]
 zeroThroughNine o f t = [[o,t],[o,f],[f,o,o,o],[f,o,o],[f,o],[f],[o,o,o],[o,o],[o],[]]
 
 thousands :: [[Digit]]
@@ -63,8 +62,8 @@ stringToRoman s = parseString s >>= SafeList.head . validate
 stringToRoman' :: String -> Maybe [Digit]
 stringToRoman' s = parseString s >>= validate'
 
-romanToInt :: [Digit] -> Int
-romanToInt r = let (n,_) = foldr combinator (0,I) r
+roman2Int :: [Digit] -> Int
+roman2Int r = let (n,_) = foldr combinator (0,I) r
                in n
 
 digit2Number :: Digit -> Int
@@ -77,20 +76,22 @@ digit2Number D =  500
 digit2Number M = 1000
 
 combinator :: Digit -> (Int,Digit) -> (Int,Digit)
-combinator n (s,l)
-   | l <= n = (s+digit2Number n,n)
-   | otherwise = (s-digit2Number n,n)
+combinator n (s,l) = (f s $ digit2Number n, n)
+                  where f | l <= n    = (+)
+                          | otherwise = (-)
 
-main :: IO ()
-main = do
-    putStrLn "Enter roman number:"
-    string <- getLine
-    let validatedRoman = stringToRoman string
-        validatedRoman' = stringToRoman' string
-        number = romanToInt <$> validatedRoman
-    putStrLn "First validation result:"
-    print validatedRoman
-    putStrLn "Second validation result:"
-    print validatedRoman'
-    putStrLn "This roman number equals:"
-    print number
+romanString2Int :: String -> Maybe Int
+romanString2Int s = roman2Int <$> stringToRoman s
+-- main :: IO ()
+-- main = do
+--     putStrLn "Enter roman number:"
+--     string <- getLine
+--     let validatedRoman = stringToRoman string
+--         validatedRoman' = stringToRoman' string
+--         number = roman2Int <$> validatedRoman
+--     putStrLn "First validation result:"
+--     print validatedRoman
+--     putStrLn "Second validation result:"
+--     print validatedRoman'
+--     putStrLn "This roman number equals:"
+--     print number
