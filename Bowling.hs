@@ -8,6 +8,7 @@ newtype Roll = Roll{value::Int} deriving(Eq)
 
 data CompleteFrame = Strike | Spare {firstRoll::Roll} | Normal {firstRoll::Roll,secondRoll::Roll} | Bonus{firstRoll::Roll,secondRoll::Roll,thridRoll::Roll} deriving(Eq)
 type CurrentFrame = [Roll]
+type FrameScores = [Int]
 
 type Game = ([CompleteFrame],CurrentFrame)
 
@@ -61,3 +62,27 @@ addRoll g0@(fs,[f]) s = let combined = value f + value s
                                | combined == 10 = includeRollAsSpare
                                | otherwise      = ignoreRoll
                         in update
+
+scoreFrame :: CompleteFrame -> Int
+scoreFrame Strike = 10
+scoreFrame Spare{firstRoll=_} = 10
+scoreFrame Normal{firstRoll=f,secondRoll=s} = value f + value s
+
+scoreGame :: Game -> FrameScores
+scoreGame ([],c) = map value c
+scoreGame (fs,c) = let scores = tail $ scanl (\s f-> scoreFrame f+s) 0 fs
+                       last_s = last scores
+                       c_score = map (\r -> last_s + value r) c
+                   in scores ++ c_score
+
+showScore :: Int -> String
+showScore i = let s = show i
+                  l = length s
+              in case l of
+                      1 -> "  "++s
+                      2 -> " "++s
+                      _ -> s
+
+showGameScore :: FrameScores -> String
+showGameScore [] = ""
+showGameScore fs = foldl (\b a-> b ++ "|" ++ showScore a) "" fs 
